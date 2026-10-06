@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "molab"
+version = "1.0.0"
+description = "Autonomous Control Plane & High-Performance GPU Bridge for Remote MoLab, Colab & Cloud Pods"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "The-habib", email = "tgff28970@gmail.com" }
+]
+keywords = [
+    "molab",
+    "cloud-pc",
+    "gpu-bridge",
+    "nvidia",
+    "blackwell",
+    "remote-desktop",
+    "pty-terminal",
+    "colab",
+    "control-plane",
+    "telemetry",
+    "fastapi"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.28.0",
+    "websockets>=12.0",
+    "pydantic>=2.6.0",
+    "python-dotenv>=1.0.0",
+    "aiofiles>=23.2.0",
+    "psutil>=5.9.8",
+    "httpx>=0.27.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "flake8>=7.0.0",
+]
+
+[project.scripts]
+molab = "cli:main"
+cloudpc = "cli:main"
+
+[project.urls]
+Homepage = "https://github.com/The-habib/molab"
+Repository = "https://github.com/The-habib/molab.git"
+Issues = "https://github.com/The-habib/molab/issues"
+Documentation = "https://github.com/The-habib/molab#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["backend*", "agent*", "tunnel*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
