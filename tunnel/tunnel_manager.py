@@ -159,6 +159,23 @@ class CloudflareTunnelManager:
 
     def start_tunnel(self, timeout: float = 30.0, auto_restart: bool = True) -> Dict[str, str]:
         self._should_run = True
+        
+        # Check if an existing healthy tunnel is already running
+        if os.path.exists(self.runtime_file):
+            try:
+                with open(self.runtime_file, "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                    cached_pid = cached.get("pid")
+                    if cached_pid and cached.get("public_https_url"):
+                        import psutil
+                        if psutil.pid_exists(cached_pid) and "cloudflared" in psutil.Process(cached_pid).name().lower():
+                            self.public_https_url = cached.get("public_https_url")
+                            self.agent_wss_url = cached.get("agent_wss_url")
+                            logger.info(f"Reusing existing healthy Cloudflare tunnel (PID {cached_pid}): {self.public_https_url}")
+                            return cached
+            except Exception as e:
+                logger.debug(f"Could not reuse existing tunnel: {e}")
+
         data = self._launch_instance(timeout=timeout)
         if auto_restart and (self._supervisor_thread is None or not self._supervisor_thread.is_alive()):
             self._supervisor_thread = threading.Thread(target=self._supervisor_loop, daemon=True)

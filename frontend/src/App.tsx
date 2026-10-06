@@ -18,6 +18,7 @@ import { ContainersPage } from './pages/ContainersPage';
 import { SystemPage } from './pages/SystemPage';
 import { AuditPage } from './pages/AuditPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AIPage } from './pages/AIPage';
 import { ToastProvider, useToast } from './components/Toast';
 
 const AppContent: React.FC = () => {
@@ -171,6 +172,7 @@ const AppContent: React.FC = () => {
 
         <main style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', backgroundColor: '#090d16' }}>
           {currentTab === 'dashboard' && <DashboardPage summary={summary} onNavigate={setCurrentTab} onRefresh={fetchSummary} />}
+          {currentTab === 'ai' && <AIPage pods={summary?.pods} />}
           {currentTab === 'terminal' && <TerminalPage />}
           {currentTab === 'files' && <FilesPage />}
           {currentTab === 'processes' && <ProcessesPage />}

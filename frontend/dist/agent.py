@@ -755,6 +755,29 @@ class RemoteControlAgent:
                             shutil.rmtree(os.path.join(root, d), ignore_errors=True)
                             count += 1
                 res = {"status": "ok", "cleaned_dirs": count}
+            elif method == "llm_generate":
+                import urllib.request
+                req = urllib.request.Request(
+                    "http://127.0.0.1:11434/api/generate",
+                    data=json.dumps(params).encode(),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=180) as resp:
+                    res = json.loads(resp.read().decode())
+            elif method == "llm_chat":
+                import urllib.request
+                req = urllib.request.Request(
+                    "http://127.0.0.1:11434/api/chat",
+                    data=json.dumps(params).encode(),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=180) as resp:
+                    res = json.loads(resp.read().decode())
+            elif method == "llm_models":
+                import urllib.request
+                req = urllib.request.Request("http://127.0.0.1:11434/api/tags")
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    res = json.loads(resp.read().decode())
             else:
                 success = False
                 err = f"Unknown method: {method}"
@@ -796,6 +819,57 @@ if __name__ == "__main__":
 
     _thread = threading.Thread(target=_run_forever, daemon=True)
     _thread.start()
+
+    def _ensure_remote_llm():
+        """Autonomously configures Ollama and pulls Hermes 3 in the remote pod background if GPU is detected."""
+        try:
+            time.sleep(2)
+            gpu_info = get_gpu_telemetry()
+            has_gpu = gpu_info.get("cuda_available") or (gpu_info.get("vram_total_gb") or 0) > 0
+            if not has_gpu:
+                return
+
+            import subprocess, shutil, urllib.request
+
+            # 1. Check if Ollama is installed
+            ollama_bin = shutil.which("ollama") or ("/usr/local/bin/ollama" if os.path.exists("/usr/local/bin/ollama") else None) or ("/usr/bin/ollama" if os.path.exists("/usr/bin/ollama") else None)
+            if not ollama_bin or not os.path.exists(ollama_bin):
+                _agent_log("[LLM Auto] Installing Ollama on remote Blackwell GPU pod...")
+                subprocess.run("curl -fsSL https://ollama.com/install.sh | sh", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                ollama_bin = shutil.which("ollama") or ("/usr/local/bin/ollama" if os.path.exists("/usr/local/bin/ollama") else None)
+
+            # 2. Check if Ollama server is running
+            running = False
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=2) as r:
+                    if r.status == 200:
+                        running = True
+            except Exception:
+                pass
+
+            if not running and ollama_bin and os.path.exists(ollama_bin):
+                _agent_log("[LLM Auto] Starting Ollama server...")
+                subprocess.Popen([ollama_bin, "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                time.sleep(3)
+
+            # 3. Check if hermes3:latest is pulled
+            has_hermes = False
+            try:
+                with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=3) as r:
+                    data = json.loads(r.read().decode())
+                    models = [m.get("name") for m in data.get("models", [])]
+                    if any("hermes3" in m for m in models):
+                        has_hermes = True
+            except Exception:
+                pass
+
+            if not has_hermes and ollama_bin and os.path.exists(ollama_bin):
+                _agent_log("[LLM Auto] Pulling Hermes 3 unconstrained frontier model into Blackwell VRAM...")
+                subprocess.Popen([ollama_bin, "pull", "hermes3:latest"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            _agent_log(f"[LLM Auto] Notice: {e}")
+
+    threading.Thread(target=_ensure_remote_llm, daemon=True).start()
 
     # Print status banner
     gpu_status = get_gpu_telemetry()

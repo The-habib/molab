@@ -15,7 +15,8 @@ import {
   FileCheck,
   Settings,
   Shield,
-  Layers
+  Layers,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,6 +36,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, onlin
     {
       title: 'COMPUTE & ACCELERATOR',
       items: [
+        { id: 'ai', label: 'AI LLM Cluster', icon: Sparkles, badge: 'Hermes 3', highlight: true },
         { id: 'terminal', label: 'Interactive Shell', icon: Terminal, badge: 'PTY' },
         { id: 'gpu', label: 'GPU Center', icon: Zap, badge: 'Blackwell', highlight: true },
         { id: 'processes', label: 'Processes', icon: Activity },

@@ -127,9 +127,9 @@ def main():
         json.dump(pid_data, f, indent=2)
 
     def shutdown(sig, frame):
-        print("\nShutting down Control Plane processes...")
+        print("\nShutting down Control Plane backend...")
         backend_proc.terminate()
-        tunnel_manager.stop_tunnel()
+        # Keep cloudflare tunnel running so remote pods never lose connectivity across restarts
         pids_file = BASE_DIR / ".control_plane_pids.json"
         if pids_file.exists():
             try:

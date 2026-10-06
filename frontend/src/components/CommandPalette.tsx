@@ -13,7 +13,8 @@ import {
   FileCheck,
   Play,
   LogOut,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -49,6 +50,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const commands = [
     { id: 'dashboard', title: 'Open Dashboard', category: 'Navigation', icon: Sliders, action: () => onNavigate('dashboard') },
+    { id: 'ai', title: 'Open AI LLM Cluster (Hermes 3 Frontier AI)', category: 'Navigation', icon: Sparkles, action: () => onNavigate('ai') },
     { id: 'terminal', title: 'Open Terminal (PTY)', category: 'Navigation', icon: Terminal, action: () => onNavigate('terminal') },
     { id: 'gpu', title: 'Show GPU Center (RTX PRO 6000 Blackwell)', category: 'Navigation', icon: Zap, action: () => onNavigate('gpu') },
     { id: 'files', title: 'Browse Files (/workspace)', category: 'Navigation', icon: FolderTree, action: () => onNavigate('files') },

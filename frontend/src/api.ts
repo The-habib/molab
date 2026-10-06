@@ -274,4 +274,27 @@ export const api = {
   async cleanPycache(path = '/marimo') {
     return fetchWithAuth(`${API_BASE}/files/clean_pycache?path=${encodeURIComponent(path)}`, { method: 'POST' });
   },
+
+  // LLM Cluster & Inference
+  async getLlmModels() {
+    return fetchWithAuth(`${API_BASE}/llm/models`);
+  },
+
+  async getLlmCluster() {
+    return fetchWithAuth(`${API_BASE}/llm/cluster`);
+  },
+
+  async llmGenerate(prompt: string, model = "hermes3:latest", system?: string, podId?: string, temperature = 0.7) {
+    return fetchWithAuth(`${API_BASE}/llm/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ prompt, model, system, pod_id: podId, temperature })
+    });
+  },
+
+  async llmChat(messages: Array<{role: string, content: string}>, model = "hermes3:latest", system?: string, podId?: string, temperature = 0.7) {
+    return fetchWithAuth(`${API_BASE}/llm/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ messages, model, system, pod_id: podId, temperature })
+    });
+  },
 };
