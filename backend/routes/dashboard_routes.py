@@ -36,11 +36,12 @@ async def get_dashboard_summary(user: dict = Depends(get_current_user)):
 
     from backend.config import AGENT_AUTH_TOKEN
     molab_command = (
-        f'python3 -m pip install -q websockets psutil && '
+        f'python3 -m pip install -q --no-cache-dir websockets psutil && '
         f'curl -fsSL "{base_https}/agent.py" -o agent.py && '
-        f'pkill -9 -f agent.py 2>/dev/null; '
+        f'test -s agent.py && '
+        f'(pkill -9 -f agent.py 2>/dev/null || true) && '
         f'nohup python3 agent.py --wss "{base_wss}" --token "{AGENT_AUTH_TOKEN}" > agent.log 2>&1 & '
-        f'sleep 1; pgrep -f agent.py >/dev/null && echo "[OK] Connected to Cloud PC!"'
+        f'sleep 2 && (pgrep -f agent.py >/dev/null && echo "[OK] Connected to Cloud PC!" || (echo "[ERROR] Agent failed to start. Last log entries:" && cat agent.log))'
     )
     molab_short_command = f"curl -fsSL {tunnel_url}/agent.sh | bash" if tunnel_url else "curl -fsSL http://127.0.0.1:8800/agent.sh | bash"
 

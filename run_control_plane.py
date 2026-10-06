@@ -83,11 +83,12 @@ def main():
     base_wss = f"{ws_proto}://{clean_host}/ws/agent"
 
     molab_full_cmd = (
-        f'python3 -m pip install -q websockets psutil && '
+        f'python3 -m pip install -q --no-cache-dir websockets psutil && '
         f'curl -fsSL "{public_url}/agent.py" -o agent.py && '
-        f'pkill -9 -f agent.py 2>/dev/null; '
+        f'test -s agent.py && '
+        f'(pkill -9 -f agent.py 2>/dev/null || true) && '
         f'nohup python3 agent.py --wss "{base_wss}" --token "{AGENT_AUTH_TOKEN}" > agent.log 2>&1 & '
-        f'sleep 1; pgrep -f agent.py >/dev/null && echo "[OK] Connected to Cloud PC!"'
+        f'sleep 2 && (pgrep -f agent.py >/dev/null && echo "[OK] Connected to Cloud PC!" || (echo "[ERROR] Agent failed to start. Last log entries:" && cat agent.log))'
     )
     molab_terminal_cmd = f"curl -fsSL {public_url}/agent.sh | bash"
 

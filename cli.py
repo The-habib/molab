@@ -64,15 +64,33 @@ def get_health_data():
         pass
     return None
 
+def is_tunnel_healthy() -> bool:
+    if not TUNNEL_FILE.is_file():
+        return False
+    try:
+        if sys.platform == "win32":
+            output = subprocess.check_output('tasklist /FI "IMAGENAME eq cloudflared.exe" /NH', shell=True).decode()
+            return "cloudflared.exe" in output
+        else:
+            output = subprocess.check_output(["pgrep", "-f", "cloudflared"]).decode()
+            return bool(output.strip())
+    except Exception:
+        return False
+
 def get_active_tunnel_url():
-    if TUNNEL_FILE.is_file():
-        try:
-            with open(TUNNEL_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("public_https_url")
-        except Exception:
-            pass
-    return None
+    if not is_tunnel_healthy():
+        if TUNNEL_FILE.is_file():
+            try:
+                TUNNEL_FILE.unlink()
+            except Exception:
+                pass
+        return None
+    try:
+        with open(TUNNEL_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("public_https_url")
+    except Exception:
+        return None
 
 def get_agent_token():
     env_file = BASE_DIR / ".env"
@@ -99,11 +117,12 @@ def get_molab_full_command():
     token = get_agent_token()
 
     return (
-        f'python3 -m pip install -q websockets psutil && '
+        f'python3 -m pip install -q --no-cache-dir websockets psutil && '
         f'curl -fsSL "{base_https}/agent.py" -o agent.py && '
-        f'pkill -9 -f agent.py 2>/dev/null; '
+        f'test -s agent.py && '
+        f'(pkill -9 -f agent.py 2>/dev/null || true) && '
         f'nohup python3 agent.py --wss "{base_wss}" --token "{token}" > agent.log 2>&1 & '
-        f'sleep 1; pgrep -f agent.py >/dev/null && echo "[OK] Connected to Cloud PC!"'
+        f'sleep 2 && (pgrep -f agent.py >/dev/null && echo "[OK] Connected to Cloud PC!" || (echo "[ERROR] Agent failed to start. Last log entries:" && cat agent.log))'
     )
 
 def get_admin_credentials():
@@ -195,8 +214,24 @@ def register_path():
 
 def cmd_start(foreground=False):
     """Starts the control plane daemon and Cloudflare tunnel."""
-    if is_backend_healthy():
-        print("[*] Cloud PC Control Plane is already running!")
+    backend_ok = is_backend_healthy()
+    tunnel_ok = is_tunnel_healthy()
+
+    if backend_ok and tunnel_ok:
+        print("[*] Cloud PC Control Plane and Tunnel are already running!")
+        cmd_status()
+        return
+
+    from tunnel.tunnel_manager import tunnel_manager
+
+    if backend_ok and not tunnel_ok:
+        print("[*] Control Plane backend is active on http://127.0.0.1:8800.")
+        print("[*] Launching Cloudflare Quick Tunnel for remote pod access...", flush=True)
+        try:
+            tunnel_manager.start_tunnel(timeout=30.0)
+            print("  [OK] Cloudflare Tunnel established successfully!")
+        except Exception as e:
+            print(f"  [ERROR] Tunnel start failed: {e}")
         cmd_status()
         return
 
@@ -348,6 +383,19 @@ def cmd_stop():
             timeout=5
         )
         stopped = True
+    except Exception:
+        pass
+
+    # Terminate cloudflared process
+    try:
+        if sys.platform == "win32":
+            subprocess.run(
+                ["powershell", "-NoProfile", "-Command", "Get-Process -Name '*cloudflared*' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue"],
+                capture_output=True,
+                timeout=5
+            )
+        else:
+            subprocess.run(["pkill", "-9", "-f", "cloudflared"], capture_output=True, timeout=5)
     except Exception:
         pass
 

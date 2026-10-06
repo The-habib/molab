@@ -23,6 +23,8 @@ class CloudflareTunnelManager:
         self.public_https_url: Optional[str] = None
         self.agent_wss_url: Optional[str] = None
         self._url_event = threading.Event()
+        self._should_run = True
+        self._supervisor_thread: Optional[threading.Thread] = None
 
     def _download_cloudflared(self) -> str:
         """Autonomously downloads the official cloudflared binary for the current OS/architecture."""
@@ -74,12 +76,30 @@ class CloudflareTunnelManager:
                 return c
         return self._download_cloudflared()
 
-    def start_tunnel(self, timeout: float = 30.0) -> Dict[str, str]:
+    def is_alive(self) -> bool:
+        if self.process and self.process.poll() is None:
+            return True
+        # Check system-level processes if started externally
+        try:
+            if sys.platform == "win32":
+                output = subprocess.check_output('tasklist /FI "IMAGENAME eq cloudflared.exe" /NH', shell=True).decode()
+                return "cloudflared.exe" in output
+            else:
+                output = subprocess.check_output(["pgrep", "-f", "cloudflared"]).decode()
+                return bool(output.strip())
+        except Exception:
+            return False
+
+    def _launch_instance(self, timeout: float = 30.0) -> Dict[str, str]:
         cloudflared_bin = self.find_cloudflared()
         target_url = f"http://127.0.0.1:{self.target_port}"
         cmd = [cloudflared_bin, "tunnel", "--url", target_url, "--no-autoupdate"]
 
         logger.info(f"Starting Cloudflare Quick Tunnel pointing to {target_url}...")
+        self._url_event.clear()
+        self.public_https_url = None
+        self.agent_wss_url = None
+
         self.process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -90,7 +110,7 @@ class CloudflareTunnelManager:
 
         def drain_stderr():
             for line in iter(self.process.stderr.readline, ''):
-                if not line:
+                if not line or not self._should_run:
                     break
                 m = re.search(r"https://([a-zA-Z0-9-]+\.trycloudflare\.com)", line)
                 if m and not self.public_https_url:
@@ -107,6 +127,7 @@ class CloudflareTunnelManager:
 
         runtime_data = {
             "status": "online",
+            "pid": self.process.pid,
             "public_https_url": self.public_https_url,
             "agent_wss_url": self.agent_wss_url,
             "local_url": f"http://127.0.0.1:{self.target_port}",
@@ -120,14 +141,42 @@ class CloudflareTunnelManager:
         logger.info(f"Agent WSS URL: {self.agent_wss_url}")
         return runtime_data
 
+    def _supervisor_loop(self):
+        while self._should_run:
+            time.sleep(3)
+            if not self._should_run:
+                break
+            if self.process and self.process.poll() is not None:
+                logger.warning("Cloudflare tunnel process exited unexpectedly. Auto-restarting in 2s...")
+                time.sleep(2)
+                if not self._should_run:
+                    break
+                try:
+                    self._launch_instance(timeout=30.0)
+                    logger.info(f"Cloudflare tunnel successfully auto-restarted: {self.public_https_url}")
+                except Exception as e:
+                    logger.error(f"Auto-restart failed: {e}")
+
+    def start_tunnel(self, timeout: float = 30.0, auto_restart: bool = True) -> Dict[str, str]:
+        self._should_run = True
+        data = self._launch_instance(timeout=timeout)
+        if auto_restart and (self._supervisor_thread is None or not self._supervisor_thread.is_alive()):
+            self._supervisor_thread = threading.Thread(target=self._supervisor_loop, daemon=True)
+            self._supervisor_thread.start()
+        return data
+
     def stop_tunnel(self):
+        self._should_run = False
         if self.process:
             logger.info("Stopping Cloudflare tunnel process...")
-            self.process.terminate()
             try:
-                self.process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
+                self.process.terminate()
+                self.process.wait(timeout=3)
+            except Exception:
+                try:
+                    self.process.kill()
+                except Exception:
+                    pass
             self.process = None
 
         if os.path.exists(self.runtime_file):

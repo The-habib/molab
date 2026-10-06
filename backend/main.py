@@ -126,11 +126,15 @@ echo "================================================="
 echo "   MOLAB CLOUD PC AGENT AUTONOMOUS INSTALLER    "
 echo "================================================="
 pkill -9 -f agent.py 2>/dev/null || true
-python3 -m pip install -q websockets psutil 2>/dev/null || true
+python3 -m pip install -q --no-cache-dir websockets psutil 2>/dev/null || true
 echo "[*] Downloading latest agent from {https_url}..."
 curl -fsSL "{https_url}/agent.py" -o agent.py
+if [ ! -s agent.py ]; then
+    echo "[ERROR] Failed to download agent.py from {https_url}"
+    exit 1
+fi
 nohup python3 agent.py > agent.log 2>&1 &
-sleep 1.5
+sleep 2
 if pgrep -f "agent.py" > /dev/null; then
     echo "[OK] MoLab Cloud PC Agent is running in the background (PID $(pgrep -f agent.py | head -n 1))."
     echo "[OK] Connected to Control Plane at {https_url}"
