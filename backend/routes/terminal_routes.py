@@ -53,6 +53,16 @@ async def get_scrollback(session_id: str, user: dict = Depends(get_current_user)
         headers={"Content-Disposition": f"attachment; filename={session_id}_scrollback.txt"}
     )
 
+class TerminalInputRequest(BaseModel):
+    input: str
+
+@router.post("/sessions/{session_id}/input")
+async def send_session_input(session_id: str, req: TerminalInputRequest, user: dict = Depends(get_current_user)):
+    if session_id not in pty_manager.sessions:
+        raise HTTPException(status_code=404, detail="Terminal session not found")
+    await pty_manager.handle_input(session_id, req.input)
+    return {"status": "ok"}
+
 @router.websocket("/ws/{session_id}")
 async def terminal_websocket(websocket: WebSocket, session_id: str):
     user = await verify_websocket_user(websocket)

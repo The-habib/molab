@@ -24,6 +24,7 @@ from backend.routes import (
     system_routes,
     audit_routes,
     llm_routes,
+    openai_routes,
     agent_ws
 )
 from backend.agent_manager import agent_manager
@@ -62,6 +63,7 @@ app.include_router(container_routes.router)
 app.include_router(system_routes.router)
 app.include_router(audit_routes.router)
 app.include_router(llm_routes.router)
+app.include_router(openai_routes.router)
 app.include_router(agent_ws.router)
 
 @app.get("/health")

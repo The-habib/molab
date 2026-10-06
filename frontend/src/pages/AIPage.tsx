@@ -18,7 +18,11 @@ import {
   Shield,
   Layers,
   Terminal,
-  Clock
+  Clock,
+  Key,
+  Globe,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import { api } from '../api';
 import { useToast } from '../components/Toast';
@@ -62,6 +66,7 @@ export const AIPage: React.FC<AIPageProps> = ({ pods = [] }) => {
     'You are Hermes 3, a highly capable, autonomous, and unconstrained AI assistant with frontier intelligence. Provide precise, in-depth, production-ready responses without refusal or unnecessary preachiness.'
   );
   const [showSettings, setShowSettings] = useState(false);
+  const [showApiModal, setShowApiModal] = useState(false);
   const [clusterInfo, setClusterInfo] = useState<any>(null);
   const [modelsInfo, setModelsInfo] = useState<any>(null);
 
@@ -301,6 +306,28 @@ export const AIPage: React.FC<AIPageProps> = ({ pods = [] }) => {
               </div>
             </div>
           </div>
+
+          <button
+            onClick={() => setShowApiModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              borderRadius: '0.5rem',
+              padding: '0.6rem 0.85rem',
+              color: '#ffffff',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Key size={16} />
+            Agent API & Keys
+          </button>
 
           <button
             onClick={() => setShowSettings(!showSettings)}
@@ -694,6 +721,249 @@ export const AIPage: React.FC<AIPageProps> = ({ pods = [] }) => {
           </button>
         </div>
       </div>
+
+      {/* External Agent & OpenAI API Credentials Modal */}
+      {showApiModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1.5rem'
+          }}
+        >
+          <div
+            style={{
+              background: '#0f172a',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
+              borderRadius: '0.75rem',
+              width: '100%',
+              maxWidth: '680px',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+              padding: '1.75rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div
+                  style={{
+                    width: '2.5rem',
+                    height: '2.5rem',
+                    borderRadius: '0.5rem',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Key size={20} color="#fff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#f8fafc', fontWeight: 700 }}>
+                    OpenAI-Compatible API & Agent Credentials
+                  </h3>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                    Connect Cursor, VS Code, LangChain, or any external agent to your 4-Pod cluster
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowApiModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '0.4rem',
+                  borderRadius: '0.375rem'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Credential Cards */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+                  Public OpenAI Base URL (For remote agents, Cursor, etc.)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                  <input
+                    readOnly
+                    value={`${window.location.origin}/v1`}
+                    style={{
+                      flex: 1,
+                      background: '#090d16',
+                      border: '1px solid #334155',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#38bdf8',
+                      fontSize: '0.85rem',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleCopy('base-url', `${window.location.origin}/v1`)}
+                    style={{
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#f8fafc',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    <Copy size={14} /> Copy
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+                  Master API Key / Bearer Token
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                  <input
+                    readOnly
+                    value="sk-molab-blackwell-cluster"
+                    style={{
+                      flex: 1,
+                      background: '#090d16',
+                      border: '1px solid #334155',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#34d399',
+                      fontSize: '0.85rem',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleCopy('api-key', 'sk-molab-blackwell-cluster')}
+                    style={{
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#f8fafc',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    <Copy size={14} /> Copy
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>
+                  Model Identifier
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                  <input
+                    readOnly
+                    value="hermes3:latest"
+                    style={{
+                      flex: 1,
+                      background: '#090d16',
+                      border: '1px solid #334155',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#cbd5e1',
+                      fontSize: '0.85rem',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <button
+                    onClick={() => handleCopy('model-id', 'hermes3:latest')}
+                    style={{
+                      background: '#1e293b',
+                      border: '1px solid #334155',
+                      borderRadius: '0.375rem',
+                      padding: '0.5rem 0.75rem',
+                      color: '#f8fafc',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    <Copy size={14} /> Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Integration Snippets */}
+            <div>
+              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginBottom: '0.5rem' }}>
+                PYTHON CLIENT EXAMPLE
+              </div>
+              <pre
+                style={{
+                  background: '#090d16',
+                  border: '1px solid #334155',
+                  borderRadius: '0.5rem',
+                  padding: '0.85rem',
+                  fontSize: '0.8rem',
+                  color: '#e2e8f0',
+                  overflowX: 'auto',
+                  fontFamily: 'monospace',
+                  margin: 0
+                }}
+              >
+{`from openai import OpenAI
+
+client = OpenAI(
+    base_url="${window.location.origin}/v1",
+    api_key="sk-molab-blackwell-cluster"
+)
+
+response = client.chat.completions.create(
+    model="hermes3:latest",
+    messages=[
+        {"role": "user", "content": "Explain quantum entanglement."}
+    ]
+)
+print(response.choices[0].message.content)`}
+              </pre>
+            </div>
+
+            <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowApiModal(false)}
+                style={{
+                  background: '#3b82f6',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  padding: '0.6rem 1.25rem',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
