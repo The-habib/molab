@@ -24,22 +24,24 @@ async def agent_websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("Accepted authenticated agent WebSocket connection.")
 
+    pod_id = None
     try:
         # Await first registration message
         first_msg = await websocket.receive_text()
         import json
         reg_data = json.loads(first_msg)
         ack = await agent_manager.register_agent(websocket, reg_data)
+        pod_id = ack.get("pod_id")
         await websocket.send_text(json.dumps(ack))
 
         # Main receive loop
         while True:
             data = await websocket.receive_text()
-            await agent_manager.handle_agent_message(data)
+            await agent_manager.handle_agent_message(data, pod_id=pod_id)
 
     except WebSocketDisconnect:
-        logger.info("Agent disconnected.")
+        logger.info(f"Pod {pod_id or 'unknown'} disconnected.")
     except Exception as e:
-        logger.error(f"Error in agent WebSocket loop: {e}")
+        logger.error(f"Error in agent WebSocket loop for pod {pod_id}: {e}")
     finally:
-        agent_manager.disconnect_agent()
+        agent_manager.disconnect_agent(pod_id=pod_id)

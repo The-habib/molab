@@ -57,7 +57,29 @@ async def get_dashboard_summary(user: dict = Depends(get_current_user)):
         "tunnel_url": tunnel_url,
         "molab_command": molab_command,
         "molab_short_command": molab_short_command,
+        "pods": agent_manager.list_pods(),
+        "active_pod_id": agent_manager.active_pod_id,
         "timestamp": time.time()
+    }
+
+@router.get("/pods")
+async def get_all_pods(user: dict = Depends(get_current_user)):
+    return {
+        "pods": agent_manager.list_pods(),
+        "active_pod_id": agent_manager.active_pod_id,
+        "total_pods": len(agent_manager.pods)
+    }
+
+@router.post("/select_pod")
+async def select_active_pod(payload: dict, user: dict = Depends(get_current_user)):
+    pod_id = payload.get("pod_id")
+    if not pod_id:
+        return {"success": False, "error": "pod_id is required"}
+    ok = agent_manager.select_pod(pod_id)
+    return {
+        "success": ok,
+        "active_pod_id": agent_manager.active_pod_id,
+        "pods": agent_manager.list_pods()
     }
 
 

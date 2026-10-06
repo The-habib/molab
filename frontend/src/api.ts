@@ -73,9 +73,20 @@ export const api = {
     return fetchWithAuth(`${API_BASE}/auth/me`);
   },
 
-  // Dashboard
+  // Dashboard & Multi-Pod
   async getDashboardSummary() {
     return fetchWithAuth(`${API_BASE}/dashboard/summary`);
+  },
+
+  async selectPod(podId: string) {
+    return fetchWithAuth(`${API_BASE}/dashboard/select_pod`, {
+      method: 'POST',
+      body: JSON.stringify({ pod_id: podId }),
+    });
+  },
+
+  async getPods() {
+    return fetchWithAuth(`${API_BASE}/dashboard/pods`);
   },
 
   // Terminal

@@ -158,6 +158,13 @@ const AppContent: React.FC = () => {
           hostname={hostname}
           gpuName={gpuName}
           username={currentUser}
+          pods={summary?.pods}
+          activePodId={summary?.active_pod_id}
+          onSelectPod={async (podId) => {
+            await api.selectPod(podId);
+            fetchSummary();
+            showToast(`Switched active node to ${podId}`, 'info');
+          }}
           onOpenCommandPalette={() => setCmdPaletteOpen(true)}
           onLogout={handleLogout}
         />

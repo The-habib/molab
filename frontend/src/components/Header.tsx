@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, LogOut, Radio, Cpu, ShieldCheck, Zap } from 'lucide-react';
+import { Search, LogOut, Radio, Cpu, ShieldCheck, Zap, Server } from 'lucide-react';
 
 interface HeaderProps {
   online: boolean;
@@ -7,6 +7,9 @@ interface HeaderProps {
   hostname?: string;
   gpuName?: string;
   username: string;
+  pods?: any[];
+  activePodId?: string;
+  onSelectPod?: (podId: string) => void;
   onOpenCommandPalette: () => void;
   onLogout: () => void;
 }
@@ -17,6 +20,9 @@ export const Header: React.FC<HeaderProps> = ({
   hostname,
   gpuName,
   username,
+  pods,
+  activePodId,
+  onSelectPod,
   onOpenCommandPalette,
   onLogout,
 }) => {
@@ -49,19 +55,47 @@ export const Header: React.FC<HeaderProps> = ({
           color: online ? '#34d399' : '#fb7185'
         }}>
           <div className={`pulse-dot ${online ? 'pulse-dot-online' : ''}`} style={{ backgroundColor: online ? '#10b981' : '#f43f5e' }} />
-          <span>{online ? `DIRECT WSS • ${latencyMs}ms` : 'POD DISCONNECTED'}</span>
+          <span>{online ? (pods && pods.length > 1 ? `CLUSTER ACTIVE (${pods.length} PODS)` : `DIRECT WSS • ${latencyMs}ms`) : 'POD DISCONNECTED'}</span>
         </div>
 
-        {/* Hostname & GPU badge */}
-        {hostname && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#94a3b8' }}>
-            <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{hostname}</span>
-            {gpuName && (
-              <span className="badge badge-nvidia" style={{ fontSize: '0.7rem' }}>
-                <Zap size={11} /> {gpuName.includes('Blackwell') ? 'RTX PRO 6000 Blackwell' : gpuName}
-              </span>
-            )}
+        {/* Multi-Pod Cluster Selector or Single Hostname Badge */}
+        {pods && pods.length > 1 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#131e33', padding: '0.2rem 0.6rem', borderRadius: '8px', border: '1px solid #203354' }}>
+            <Server size={13} style={{ color: '#38bdf8' }} />
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>ACTIVE POD:</span>
+            <select
+              value={activePodId || ''}
+              onChange={(e) => onSelectPod && onSelectPod(e.target.value)}
+              style={{
+                backgroundColor: '#0b1322',
+                color: '#38bdf8',
+                border: '1px solid #20314f',
+                borderRadius: '6px',
+                padding: '0.25rem 0.6rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {pods.map((p) => (
+                <option key={p.pod_id} value={p.pod_id}>
+                  {p.hostname} {p.vram_total_gb ? `(${p.vram_total_gb}GB)` : ''} • {p.latency_ms}ms
+                </option>
+              ))}
+            </select>
           </div>
+        ) : (
+          hostname && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#94a3b8' }}>
+              <span style={{ color: '#cbd5e1', fontWeight: 600 }}>{hostname}</span>
+              {gpuName && (
+                <span className="badge badge-nvidia" style={{ fontSize: '0.7rem' }}>
+                  <Zap size={11} /> {gpuName.includes('Blackwell') ? 'RTX PRO 6000 Blackwell' : gpuName}
+                </span>
+              )}
+            </div>
+          )
         )}
       </div>
 
