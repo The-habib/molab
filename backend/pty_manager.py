@@ -58,7 +58,8 @@ class PTYManager:
         agent_manager.register_pty_listener(
             session_id,
             on_output=lambda data: asyncio.create_task(self.broadcast_output(session_id, data)),
-            on_exit=lambda code: asyncio.create_task(self.handle_remote_exit(session_id, code))
+            on_exit=lambda code: asyncio.create_task(self.handle_remote_exit(session_id, code)),
+            pod_id=agent_manager.active_pod_id
         )
 
         return session_id

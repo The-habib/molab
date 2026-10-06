@@ -272,7 +272,7 @@ class AgentManager:
         self._pty_pod_map.pop(session_id, None)
 
     async def send_pty_input(self, session_id: str, data: str, pod_id: Optional[str] = None):
-        target_pod_id = pod_id or self._pty_pod_map.get(session_id)
+        target_pod_id = pod_id or self._pty_pod_map.get(session_id) or self.active_pod_id
         pod = self.get_pod(target_pod_id)
         if not pod:
             return
