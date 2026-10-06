@@ -774,11 +774,11 @@ if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser(description="MoLab Cloud PC Control Agent")
-    parser.add_argument("--wss", default=os.getenv("MOLAB_CONTROL_WSS_URL", MOLAB_CONTROL_WSS_URL), help="Windows Control Plane WSS Endpoint")
-    parser.add_argument("--token", default=os.getenv("MOLAB_AGENT_AUTH_TOKEN", MOLAB_AGENT_AUTH_TOKEN), help="Agent Authentication Token")
+    parser.add_argument("--wss", nargs="?", default=None, help="Windows Control Plane WSS Endpoint")
+    parser.add_argument("--token", nargs="?", default=None, help="Agent Authentication Token")
     _cli_args, _ = parser.parse_known_args()
-    _active_wss = _cli_args.wss
-    _active_token = _cli_args.token
+    _active_wss = _cli_args.wss or os.getenv("MOLAB_CONTROL_WSS_URL", MOLAB_CONTROL_WSS_URL)
+    _active_token = _cli_args.token or os.getenv("MOLAB_AGENT_AUTH_TOKEN", MOLAB_AGENT_AUTH_TOKEN)
 
     def _run_forever():
         global _global_agent
